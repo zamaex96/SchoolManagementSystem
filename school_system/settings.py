@@ -13,7 +13,7 @@ import os # Make sure 'os' is imported at the top
 from pathlib import Path
 import dj_database_url
 from urllib.parse import urlparse # Import urlparse
-
+import logging
 from django.conf.global_settings import DATABASES
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -110,30 +110,26 @@ WSGI_APPLICATION = 'school_system.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 # --- REVISED DATABASES SETTING ---
+logger = logging.getLogger(__name__)
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL:
+    logger.info(f"DATABASE_URL: {DATABASE_URL}")
     result = urlparse(DATABASE_URL)
+    logger.info(f"Parsed DB NAME: {result.path.lstrip('/')}")
     DATABASES = {
         'default': {
-            'ENGINE':   'django.db.backends.postgresql',
-            'NAME':     result.path.lstrip('/'),       # e.g. "school_db_4cqb"
-            'USER':     result.username,
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': result.path.lstrip('/'),
+            'USER': result.username,
             'PASSWORD': result.password,
-            'HOST':     result.hostname,
-            'PORT':     result.port or '',
+            'HOST': result.hostname,
+            'PORT': result.port or '',
             'CONN_MAX_AGE': 600,
             **(
                 {'OPTIONS': {'sslmode': 'require'}}
                 if os.environ.get('DJANGO_DB_SSL_REQUIRE', 'False') == 'True'
                 else {}
             )
-        }
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME':   BASE_DIR / 'db.sqlite3',
         }
     }
 
