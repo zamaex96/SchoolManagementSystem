@@ -1,0 +1,26 @@
+{# templates/core/result_delete_confirm.html #}
+
+{% extends 'base.html' %}
+
+{% block title %}Confirm Deletion{% endblock %}
+
+{% block content %}
+  <h2>Confirm Deletion</h2>
+
+  <p>Are you sure you want to delete the following result?</p>
+
+  <div class="alert alert-warning" role="alert">
+    <strong>Student:</strong> {{ result.student.full_name }}<br>
+    <strong>Subject:</strong> {{ result.subject.name }}<br>
+    <strong>Term/Exam:</strong> {{ result.term_exam_name }}<br>
+    <strong>Score:</strong> {{ result.score|default:"N/A" }}<br>
+    <strong>Grade:</strong> {{ result.grade|default:"N/A" }}
+  </div>
+
+  <form method="post"> {# POST to the current URL to confirm deletion #}
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Yes, Delete</button>
+    <a href="{% url 'teacher_dashboard' %}" class="btn btn-secondary">Cancel</a> {# Link back to safety #}
+  </form>
+
+{% endblock %}

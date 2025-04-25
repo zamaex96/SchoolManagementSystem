@@ -1,0 +1,81 @@
+{# templates/home.html #}
+
+{% extends 'base.html' %} {# Assumes you have a base.html setup #}
+{% load static %} {# Load static if you need it for homepage-specific assets #}
+
+{% block title %}
+    Homepage - Al Asar School Yugo Management System
+{% endblock %}
+
+{% block content %}
+
+    {# templates/home.html (Carousel Section) #}
+
+{# --- UPDATED CAROUSEL --- #}
+{% if carousel_images %}
+<div id="homeCarousel" class="carousel slide mb-4" data-bs-ride="carousel">
+  {# Indicators need dynamic generation #}
+  <div class="carousel-indicators">
+    {% for image in carousel_images %}
+      <button type="button" data-bs-target="#homeCarousel" data-bs-slide-to="{{ forloop.counter0 }}" class="{% if forloop.first %}active{% endif %}" aria-current="{% if forloop.first %}true{% endif %}" aria-label="Slide {{ forloop.counter }}"></button>
+    {% endfor %}
+  </div>
+  {# Inner items loop #}
+  <div class="carousel-inner">
+    {% for image in carousel_images %}
+    <div class="carousel-item {% if forloop.first %}active{% endif %}" data-bs-interval="5000">
+      {# Use image.image.url to get the correct URL for the uploaded file #}
+      <img src="{{ image.image.url }}" class="d-block w-100" alt="{{ image.title|default:'School Image' }}">
+      {% if image.caption %}
+      <div class="carousel-caption d-none d-md-block">
+        {# Removed default h5/p, just show caption #}
+        <p>{{ image.caption }}</p>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {# Controls remain the same #}
+  <button class="carousel-control-prev" type="button" data-bs-target="#homeCarousel" data-bs-slide="prev">
+    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+    <span class="visually-hidden">Previous</span>
+  </button>
+  <button class="carousel-control-next" type="button" data-bs-target="#homeCarousel" data-bs-slide="next">
+    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+    <span class="visually-hidden">Next</span>
+  </button>
+</div>
+{% endif %}
+{# --- END UPDATED CAROUSEL --- #}
+
+    {# --- ADD ANNOUNCEMENTS SECTION --- #}
+    {% if announcements %}
+    <div class="announcements mb-4">
+      <h3>Latest News & Announcements</h3>
+      {% for announcement in announcements %}
+        <div class="alert alert-secondary"> {# Using secondary color for homepage #}
+          <h5>{{ announcement.title }} <small class="text-muted">({{ announcement.timestamp|date:"Y-m-d" }})</small></h5> {# Maybe simpler date format #}
+          <p>{{ announcement.content|linebreaksbr|truncatewords:30 }}</p> {# Truncate longer announcements #}
+          {# Optionally add a 'Read More' link if needed #}
+          {% if announcement.posted_by %}
+            <small>Posted by: {{ announcement.posted_by.get_full_name|default:announcement.posted_by.username }}</small>
+          {% endif %}
+        </div>
+      {% endfor %}
+      {# Optional: Link to a page showing all announcements #}
+      {# <p><a href="#">View All Announcements</a></p> #}
+    </div>
+    {# --- ADD PAGINATION INCLUDE --- #}
+    {% include "partials/pagination.html" with page_obj=announcements %}
+    {# --- END INCLUDE --- #}
+    <hr> {# Separator #}
+    {% endif %}
+    {# --- END ANNOUNCEMENTS SECTION --- #}
+
+    {# Original Homepage Content #}
+    <h1>Welcome to the AL Asar School Yugo Management System!</h1>
+    <p>This is the main portal for the management system.</p>
+    <p>You can access the homepage of the school for more information.</p>
+    {# Add more specific homepage content here #}
+
+{% endblock %}

@@ -1,0 +1,74 @@
+{# templates/core/news_detail.html #}
+
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+  <div class="container mt-4">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'news_list' %}">News</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ article.title|truncatechars:50 }}</li>
+      </ol>
+    </nav>
+
+    <article class="news-article">
+      <h2>{{ article.title }}</h2>
+      <p class="text-muted"><small>Published: {{ article.published_date|date:"F d, Y" }} {% if article.author %}| By: {{ article.author.get_full_name|default:article.author.username }}{% endif %}</small></p>
+      <hr>
+               {# --- ADD CAROUSEL SECTION --- #}
+               {% if article.images.all %}
+                 {# Use a fixed ID for the detail page carousel #}
+                 <div id="newsDetailCarousel" class="carousel slide mb-4" data-bs-ride="carousel" style="max-width: 700px; margin: auto;"> {# Slightly wider maybe #}
+                   <div class="carousel-indicators">
+                     {% for news_image in article.images.all %}
+                       <button type="button" data-bs-target="#newsDetailCarousel" data-bs-slide-to="{{ forloop.counter0 }}" class="{% if forloop.first %}active{% endif %}" aria-current="{% if forloop.first %}true{% endif %}" aria-label="Slide {{ forloop.counter }}"></button>
+                     {% endfor %}
+                   </div>
+                   <div class="carousel-inner">
+                     {% for news_image in article.images.all %}
+                       <div class="carousel-item {% if forloop.first %}active{% endif %}" data-bs-interval="7000">
+                         <img src="{{ news_image.image.url }}" class="d-block w-100 rounded" alt="{{ news_image.caption|default:article.title }}">
+                         {% if news_image.caption %}
+                           <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 p-1 rounded">
+                             <p class="mb-0">{{ news_image.caption }}</p>
+                           </div>
+                         {% endif %}
+                       </div>
+                     {% endfor %}
+                   </div>
+                   {% if article.images.all|length > 1 %}
+                     <button class="carousel-control-prev" type="button" data-bs-target="#newsDetailCarousel" data-bs-slide="prev">
+                       <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                       <span class="visually-hidden">Previous</span>
+                     </button>
+                     <button class="carousel-control-next" type="button" data-bs-target="#newsDetailCarousel" data-bs-slide="next">
+                       <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                       <span class="visually-hidden">Next</span>
+                     </button>
+                   {% endif %}
+                 </div>
+               {% endif %}
+               {# --- END CAROUSEL SECTION --- #}
+
+               {# Display FULL content #}
+               <div class="article-content">
+                 {{ article.content|linebreaksbr }}
+               </div>
+
+
+      {# Display FULL content #}
+      <div class="article-content">
+        {{ article.content|linebreaksbr }}
+      </div>
+
+    </article>
+
+    <hr>
+    <a href="{% url 'news_list' %}" class="btn btn-secondary">« Back to News List</a>
+
+  </div>
+{% endblock %}

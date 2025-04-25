@@ -1,0 +1,170 @@
+{# templates/core/student_profile.html #}
+
+{% extends 'base.html' %}
+{% load static %} {# <--- ADD THIS LINE --- #}
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+  <div class="row mb-4"> {# Use row for layout #}
+      <div class="col-md-3 text-center text-md-start"> {# Column for image #}
+          {# --- ADD PROFILE PICTURE DISPLAY --- #}
+          <img
+            src="{% if student.profile_picture %}{{ student.profile_picture.url }}{% else %}{% static 'images/default_profile.png' %}{% endif %}"
+            alt="Profile picture for {{ student.full_name }}"
+            class="img-thumbnail rounded-circle mb-3" {# Bootstrap styling #}
+            style="width: 150px; height: 150px; object-fit: cover;" {# Fixed size styling #}
+          >
+          {# --- END PROFILE PICTURE DISPLAY --- #}
+      </div>
+      <div class="col-md-9"> {# Column for title/details #}
+          <h2>{{ page_title }}</h2>
+          {# --- Student Details Card (Existing - Modified) --- #}
+          {# Removed the outer card div, integrate details here #}
+           <ul class="list-group list-group-flush mb-3">
+                <li class="list-group-item"><strong>Student ID:</strong> {{ student.student_id }}</li>
+                {# Removed Full Name as it's in the h2 now #}
+                <li class="list-group-item"><strong>Date of Birth:</strong> {{ student.date_of_birth|date:"Y-m-d" }}</li>
+                <li class="list-group-item"><strong>Current Class:</strong> {{ student.current_class|default:"Not Assigned" }}</li>
+
+          {# --- ADD AVERAGE SCORE DISPLAY --- #}
+        <li class="list-group-item">
+            <strong>Overall Average Score:</strong>
+            {% if student.average_score is not None %}
+                {{ student.average_score }}% {# Display calculated average #}
+            {% else %}
+                N/A (No scores recorded)
+            {% endif %}
+        </li>
+        {# --- END AVERAGE SCORE DISPLAY --- #}
+
+          {# --- ADD TERM AVERAGES DISPLAY --- #}
+        <li class="list-group-item">
+            <strong>Term / Exam Averages:</strong>
+            {% with term_avgs=student.term_averages %} {# Call the method once #}
+                {% if term_avgs %}
+                    <ul>
+                        {% for term_name, average in term_avgs.items %}
+                            <li>{{ term_name }}: {{ average }}%</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <small class="text-muted">No term scores recorded yet.</small>
+                {% endif %}
+            {% endwith %}
+        </li>
+        {# --- END TERM AVERAGES DISPLAY --- #}
+
+        {% if user.is_staff or user.teacherprofile %}
+          <li class="list-group-item">
+            <strong>Linked Parents/Guardians:</strong>
+            {% if student.parents.all %}
+              <ul>
+                {% for parent_user in student.parents.all %}
+                  <li>{{ parent_user.get_full_name|default:parent_user.username }}</li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              None Assigned
+            {% endif %}
+          </li>
+        {% endif %}
+      </ul>
+       <div class="mt-3">
+           {% if user.parentprofile %}
+               <a href="{% url 'parent_dashboard' %}" class="btn btn-secondary btn-sm">Back to Dashboard</a> {# Made buttons smaller #}
+           {% elif user.teacherprofile %}
+               <a href="{% url 'teacher_dashboard' %}" class="btn btn-secondary btn-sm">Back to Dashboard</a>
+           {% elif user.is_staff %}
+                <a href="{% url 'admin:core_student_change' student.id %}" class="btn btn-info btn-sm">Edit in Admin</a>
+                <a href="{% url 'admin:index' %}" class="btn btn-secondary btn-sm">Back to Admin</a>
+           {% endif %}
+           {% if user.teacherprofile and student.current_class in user.class_teacher_of.all %}
+                <a href="{% url 'add_result' student_id=student.id %}" class="btn btn-primary btn-sm">Add Result</a>
+           {% endif %}
+       </div>
+    </div>
+  </div>
+
+  {# --- UPDATED ATTENDANCE SECTION --- #}
+  <div class="card">
+    <div class="card-body">
+      <h5 class="card-title">Attendance History</h5>
+
+      {# --- Date Filter Form --- #}
+      <form method="get" class="row g-3 mb-3 align-items-end border p-3 rounded bg-light"> {# Added some styling #}
+          <div class="col-md-4">
+              <label for="start_date" class="form-label fw-bold">From:</label> {# Made labels bold #}
+              <input type="date" class="form-control form-control-sm" id="start_date" name="start_date" value="{{ start_date_str }}">
+          </div>
+          <div class="col-md-4">
+              <label for="end_date" class="form-label fw-bold">To:</label>
+              <input type="date" class="form-control form-control-sm" id="end_date" name="end_date" value="{{ end_date_str }}">
+          </div>
+          <div class="col-md-2">
+              <button type="submit" class="btn btn-secondary btn-sm w-100">Filter</button>
+          </div>
+           <div class="col-md-2">
+               <a href="{% url 'student_profile' student_id=student.id %}" class="btn btn-outline-secondary btn-sm w-100" title="Reset to default date range">Reset</a> {# Added title #}
+           </div>
+      </form>
+      {# --- End Date Filter Form --- #}
+
+      {# --- Attendance Summary for Period --- #}
+      <div class="summary mb-3 p-2 bg-light rounded border"> {# Added border #}
+          <strong>Summary for Period ({{ start_date|date:"Y-m-d" }} to {{ end_date|date:"Y-m-d" }}):</strong><br>
+          <span class="badge bg-success me-1">Present: {{ attendance_summary.present_count }}</span>
+          <span class="badge bg-danger me-1">Absent: {{ attendance_summary.absent_count }}</span>
+          <span class="badge bg-warning text-dark me-1">Late: {{ attendance_summary.late_count }}</span>
+          <span class="badge bg-secondary">Excused: {{ attendance_summary.excused_count }}</span>
+      </div>
+      {# --- End Attendance Summary --- #}
+
+      {# --- Attendance Records Table --- #}
+      <h6>Records for Selected Period:</h6> {# Added heading #}
+      {% if attendance_records %} {# Use the filtered attendance_records variable #}
+        <div class="table-responsive"> {# Make table scrollable on small screens #}
+            <table class="table table-sm table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Notes</th>
+                  {% if user.is_staff %}<th>Recorded By</th>{% endif %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for record in attendance_records %} {# Loop through filtered records #}
+                  <tr>
+                    <td>{{ record.date|date:"Y-m-d" }}</td>
+                    <td>
+                      {# Badges for status #}
+                      {% if record.status == 'PRESENT' %}
+                        <span class="badge bg-success">{{ record.get_status_display }}</span>
+                      {% elif record.status == 'LATE' %}
+                        <span class="badge bg-warning text-dark">{{ record.get_status_display }}</span>
+                      {% elif record.status == 'ABSENT' %}
+                        <span class="badge bg-danger">{{ record.get_status_display }}</span>
+                      {% else %} {# Excused or other statuses #}
+                        <span class="badge bg-secondary">{{ record.get_status_display }}</span>
+                      {% endif %}
+                    </td>
+                    <td>{{ record.notes|default:"" }}</td>
+                    {% if user.is_staff %}
+                        <td>{{ record.recorded_by.username|default:"N/A" }}</td>
+                    {% endif %}
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+        </div>
+         {# Optional: Add pagination here if the filtered list could still be very long #}
+      {% else %}
+        <p>No attendance records found for the selected date range.</p>
+      {% endif %}
+      {# --- End Attendance Records Table --- #}
+
+    </div>
+  </div>
+  {# --- END ATTENDANCE SECTION --- #}
+
+{% endblock %}

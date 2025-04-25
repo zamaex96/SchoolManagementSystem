@@ -1,0 +1,78 @@
+{# templates/core/news_list.html #}
+
+{% extends 'base.html' %}
+{% load static %} {# Load static if needed for other elements #}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+  <div class="container mt-4">
+    <h2>{{ page_title }}</h2>
+    <hr>
+
+    {% if news_articles %}
+      {% for article in news_articles %}
+        <div class="card mb-4 shadow-sm">
+          <div class="card-body">
+            <h3 class="card-title">{{ article.title }}</h3>
+            <p class="card-text"><small class="text-muted">Published: {{ article.published_date|date:"F d, Y" }} {% if article.author %}| By: {{ article.author.get_full_name|default:article.author.username }}{% endif %}</small></p>
+
+            {# --- Display Excerpt --- #}
+            <p class="card-text">{{ article.content|linebreaksbr|truncatewords_html:50 }}</p> {# Keep excerpt #}
+            {# --- End Excerpt --- #}
+{% if article.images.all %}
+  {# Unique ID for each carousel is important #}
+  {% with carousel_id="newsCarouselList"|add:article.id|slugify %} {# Added 'List' suffix #}
+  <div id="{{ carousel_id }}" class="carousel slide mb-3" data-bs-ride="carousel" style="max-width: 500px; margin: auto;">
+    <div class="carousel-indicators">
+      {% for news_image in article.images.all %}
+        {# Ensure data-bs-target matches the carousel ID #}
+        <button type="button" data-bs-target="#{{ carousel_id }}" data-bs-slide-to="{{ forloop.counter0 }}" class="{% if forloop.first %}active{% endif %}" aria-current="{% if forloop.first %}true{% endif %}" aria-label="Slide {{ forloop.counter }}"></button>
+      {% endfor %}
+    </div>
+    <div class="carousel-inner">
+      {% for news_image in article.images.all %}
+        <div class="carousel-item {% if forloop.first %}active{% endif %}" data-bs-interval="7000">
+          <img src="{{ news_image.image.url }}" class="d-block w-100 rounded" alt="{{ news_image.caption|default:article.title }}">
+          {% if news_image.caption %}
+            <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 p-1 rounded">
+              <p class="mb-0">{{ news_image.caption }}</p>
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+    {% if article.images.all|length > 1 %}
+      {# Ensure data-bs-target matches the carousel ID #}
+      <button class="carousel-control-prev" type="button" data-bs-target="#{{ carousel_id }}" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Previous</span>
+      </button>
+      {# Ensure data-bs-target matches the carousel ID #}
+      <button class="carousel-control-next" type="button" data-bs-target="#{{ carousel_id }}" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Next</span>
+      </button>
+    {% endif %}
+  </div>
+  {% endwith %}
+{% endif %}
+
+
+
+            {# --- Read More Link --- #}
+            <a href="{% url 'news_detail' article_id=article.id %}" class="btn btn-outline-primary btn-sm mt-2">Read More</a>
+            {# --- END Read More Link --- #}
+
+          </div> {# End card-body #}
+        </div> {# End card #}
+      {% endfor %}
+
+      {# Include pagination for the news articles #}
+      {% include "partials/pagination.html" with page_obj=news_articles %}
+
+    {% else %}
+      <p>No news articles found.</p>
+    {% endif %}
+  </div> {# End container #}
+{% endblock %}

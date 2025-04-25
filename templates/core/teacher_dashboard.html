@@ -1,0 +1,153 @@
+{# templates/core/teacher_dashboard.html #}
+
+{% extends 'base.html' %}
+{% load core_extras %} {# Load custom template tags #}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+   {# --- ANNOUNCEMENTS SECTION --- #}
+  {% if announcements %}
+  <div class="announcements mb-4">
+    <h3>Recent Announcements</h3>
+    {% for announcement in announcements %}
+      <div class="alert alert-info">
+         <h5>{{ announcement.title }} <small class="text-muted">({{ announcement.timestamp|date:"Y-m-d H:i" }})</small></h5>
+         <p>{{ announcement.content|linebreaksbr }}</p>
+         {% if announcement.posted_by %}
+           <small>Posted by: {{ announcement.posted_by.get_full_name|default:announcement.posted_by.username }}</small>
+         {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+    {# --- PAGINATION INCLUDE --- #}
+    {% include "partials/pagination.html" with page_obj=announcements %}
+    {# --- END INCLUDE --- #}
+  <hr>{# Separator #}
+  {% endif %}
+  {# --- END ANNOUNCEMENTS SECTION --- #}
+
+  <h2>{{ page_title }}</h2>
+  <p>Welcome, {{ teacher.get_full_name|default:teacher.username }}!</p>
+
+  {% if assigned_classes %}
+    <h3>Classes Assigned:</h3>
+    {% for school_class in assigned_classes %}
+      {% with today_summary=attendance_today|get_item:school_class.id class_averages=school_class.term_subject_averages %}
+      <div class="card mb-3">
+        {# --- REMOVED DEBUG PRE TAG --- #}
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap"> {# Added flex-wrap #}
+          {# Left side: Class name and summary #}
+          <div class="me-3">
+              <h4>{{ school_class }}</h4>
+              {% if today_summary %}
+                <small class="text-muted">
+                  Attendance Today ({{ today_summary.total_students }} Students):
+                  {% if today_summary.not_recorded > 0 %}
+                      <span class="badge bg-secondary">Not Recorded: {{ today_summary.not_recorded }}</span> |
+                  {% endif %}
+                   <span class="badge bg-success">Present: {{ today_summary.present_count }}</span> |
+                   <span class="badge bg-danger">Absent: {{ today_summary.absent_count }}</span> |
+                   <span class="badge bg-warning text-dark">Late: {{ today_summary.late_count }}</span> |
+                   <span class="badge bg-secondary">Excused: {{ today_summary.excused_count }}</span>
+                </small>
+              {% else %}
+                  <small class="text-muted">Attendance for today not yet available.</small>
+              {% endif %}
+          </div>
+          {# --- Action Buttons Area (Right side) --- #}
+          <div class="btn-toolbar mt-2 mt-md-0" role="toolbar" aria-label="Class actions">
+              <div class="btn-group me-2 mb-1 mb-md-0" role="group" aria-label="Attendance Actions">
+                  <a href="{% url 'take_attendance' class_id=school_class.id %}" class="btn btn-info btn-sm">Take/Edit Today</a>
+                  <a href="{% url 'view_class_attendance' class_id=school_class.id %}" class="btn btn-outline-secondary btn-sm">View History</a>
+              </div>
+              <div class="btn-group mb-1 mb-md-0" role="group" aria-label="Export Actions">
+                   <a href="{% url 'export_class_results' class_id=school_class.id %}" class="btn btn-success btn-sm" title="Download results for this class as CSV">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download me-1" viewBox="0 0 16 16">
+                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                        <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                      </svg> Export Results
+                   </a>
+              </div>
+          </div>
+          {# --- END Action Buttons Area --- #}
+        </div>
+        <div class="card-body">
+
+            {# --- CLASS AVERAGES SECTION (Corrected Styling) --- #}
+            <div class="class-averages mb-4 border p-3 rounded bg-light">
+                <h5>Class Averages by Term/Subject:</h5>
+                {% if class_averages %}
+                    {% for term_name, subject_avgs in class_averages.items %}
+                        <div class="mb-2 d-flex align-items-baseline flex-wrap"> {# Use flexbox #}
+                            <strong class="me-2">{{ term_name }}:</strong> {# Term name #}
+                            <span> {# Wrapper for badges #}
+                                {% for subject_name, average in subject_avgs.items %}
+                                    <span class="badge bg-secondary me-1 mb-1">{{ subject_name }}: {{ average }}%</span> {# Badge display #}
+                                {% endfor %}
+                            </span>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted"><small>No class averages available yet (requires results with scores).</small></p>
+                {% endif %}
+            </div>
+            {# --- END CLASS AVERAGES SECTION --- #}
+
+          <h5>Students in Class:</h5>
+          {% if school_class.students.all %}
+            <ul class="list-group list-group-flush">
+              {% for student in school_class.students.all %}
+                <li class="list-group-item">
+                  {# Student Info and Add Button #}
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>
+                      <a href="{% url 'student_profile' student_id=student.id %}">
+                        {{ student.full_name }}
+                      </a>
+                      (ID: {{ student.student_id }})
+                    </span>
+                    <a href="{% url 'add_result' student_id=student.id %}" class="btn btn-outline-primary btn-sm">Add New Result</a>
+                  </div>
+
+                  {# Display Existing Results #}
+                  <div class="ms-3">
+                    <h6>Existing Results:</h6>
+                    {% if student.results.all %}
+                      <ul class="list-unstyled">
+                        {% for result in student.results.all|slice:":5" %} {# Slice to show recent 5 #}
+                          <li class="mb-1 d-flex justify-content-between align-items-center">
+                            <span>
+                              <small>
+                                <strong>{{ result.subject.name }}</strong> - {{ result.term_exam_name }}: {{ result.score|default:result.grade|default:'N/A' }}
+                                {% if result.comments %}
+                                  <em>({{ result.comments|truncatewords:5 }})</em>
+                                {% endif %}
+                              </small>
+                            </span>
+                            <span class="d-inline-flex align-items-center">
+                                <a href="{% url 'edit_result' result_id=result.id %}" class="btn btn-outline-secondary btn-sm">Edit</a>
+                                <a href="{% url 'delete_result' result_id=result.id %}" class="btn btn-outline-danger btn-sm ms-1">Delete</a>
+                            </span>
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    {% else %}
+                       <p><small>No results recorded yet.</small></p>
+                    {% endif %}
+                  </div>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p>No students currently enrolled in this class.</p>
+          {% endif %}
+        </div>
+      </div>
+      {% endwith %} {# End the 'with' block #}
+    {% endfor %}
+  {% else %}
+    <p>You are not currently assigned as the class teacher for any classes.</p>
+  {% endif %}
+
+{% endblock %}

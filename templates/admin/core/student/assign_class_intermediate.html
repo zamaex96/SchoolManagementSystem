@@ -1,0 +1,46 @@
+{# templates/admin/core/student/assign_class_intermediate.html #}
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static "admin/css/forms.css" %}">{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+› <a href="{% url 'admin:app_list' app_label='core' %}">Core</a>
+› <a href="{% url 'admin:core_student_changelist' %}">Students</a>
+› {% translate 'Assign to Class' %}
+</div>
+{% endblock %}
+
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+    <p>{% blocktranslate count counter=queryset.count %}You have selected the following {{ counter }} student:{% plural %}You have selected the following {{ counter }} students:{% endblocktranslate %}</p>
+
+    <ul>
+        {% for student in queryset %}
+            <li>{{ student.full_name }} ({{ student.student_id }}) {% if student.current_class %}<small> - Currently in: {{ student.current_class }}</small>{% endif %}</li>
+            {# Keep selected items marked in hidden inputs #}
+            <input type="hidden" name="{{ action_checkbox_name }}" value="{{ student.pk }}">
+        {% endfor %}
+    </ul>
+
+    {# Display the form to select the class #}
+    <fieldset class="module aligned">
+        <h2>Select Target Class</h2>
+        <div class="form-row">
+            {{ form.school_class.errors }}
+            <label for="id_school_class" class="required">{{ form.school_class.label }}:</label>
+            {{ form.school_class }}
+        </div>
+    </fieldset>
+
+    {# Hidden input to identify which action this is #}
+    <input type="hidden" name="action" value="assign_to_class">
+    {# Submit button for the intermediate page #}
+    <input type="submit" name="apply" value="Assign to selected class" class="default">
+    {# Optional: Cancel button #}
+    <a href="{% url 'admin:core_student_changelist' %}" class="button cancel-link">Cancel</a>
+</form>
+{% endblock %}

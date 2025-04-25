@@ -1,0 +1,96 @@
+{# templates/core/view_class_attendance.html #}
+
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} ({{ start_date|date:"Y-m-d" }}{% if start_date != end_date %} - {{ end_date|date:"Y-m-d" }}{% endif %}){% endblock %}
+
+{% block content %}
+  <h2>{{ page_title }}</h2>
+  <h4>Attendance Records</h4>
+
+  {# --- Date Filter Form --- #}
+  <form method="get" class="row g-3 mb-3 align-items-end border p-3 rounded bg-light">
+      <div class="col-md-4">
+          <label for="start_date" class="form-label fw-bold">From:</label>
+          <input type="date" class="form-control form-control-sm" id="start_date" name="start_date" value="{{ start_date_str }}">
+      </div>
+      <div class="col-md-4">
+          <label for="end_date" class="form-label fw-bold">To:</label>
+          <input type="date" class="form-control form-control-sm" id="end_date" name="end_date" value="{{ end_date_str }}">
+      </div>
+      <div class="col-md-2">
+          <button type="submit" class="btn btn-secondary btn-sm w-100">Filter</button>
+      </div>
+      {# Link to today's attendance form for this class #}
+       <div class="col-md-2">
+           <a href="{% url 'take_attendance' class_id=school_class.id %}" class="btn btn-info btn-sm w-100" title="Take/Edit Today's Attendance">Edit Today</a>
+       </div>
+  </form>
+  {# --- End Date Filter Form --- #}
+
+  {# --- Attendance Summary for Period --- #}
+  <div class="summary mb-3 p-2 bg-light rounded border">
+      <strong>Summary for Period ({{ start_date|date:"Y-m-d" }} to {{ end_date|date:"Y-m-d" }}):</strong><br>
+      <span class="badge bg-success me-1">Present: {{ attendance_summary.present_count }}</span>
+      <span class="badge bg-danger me-1">Absent: {{ attendance_summary.absent_count }}</span>
+      <span class="badge bg-warning text-dark me-1">Late: {{ attendance_summary.late_count }}</span>
+      <span class="badge bg-secondary">Excused: {{ attendance_summary.excused_count }}</span>
+  </div>
+  {# --- End Attendance Summary --- #}
+
+  {# --- Attendance Records Table --- #}
+  <h6>Records for Selected Period:</h6>
+  {% if attendance_records %}
+    <div class="table-responsive">
+        <table class="table table-sm table-striped table-hover">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Student</th> {# Added Student column #}
+              <th>Status</th>
+              <th>Notes</th>
+              {% if user.is_staff %}<th>Recorded By</th>{% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for record in attendance_records %}
+              <tr>
+                <td>{{ record.date|date:"Y-m-d" }}</td>
+                <td>
+                    {# Link to student profile #}
+                    <a href="{% url 'student_profile' student_id=record.student.id %}">
+                        {{ record.student.full_name }}
+                    </a>
+                </td>
+                <td>
+                  {# Badges for status #}
+                  {% if record.status == 'PRESENT' %}
+                    <span class="badge bg-success">{{ record.get_status_display }}</span>
+                  {% elif record.status == 'LATE' %}
+                    <span class="badge bg-warning text-dark">{{ record.get_status_display }}</span>
+                  {% elif record.status == 'ABSENT' %}
+                    <span class="badge bg-danger">{{ record.get_status_display }}</span>
+                  {% else %}
+                    <span class="badge bg-secondary">{{ record.get_status_display }}</span>
+                  {% endif %}
+                </td>
+                <td>{{ record.notes|default:"" }}</td>
+                {% if user.is_staff %}
+                    <td>{{ record.recorded_by.username|default:"N/A" }}</td>
+                {% endif %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+    </div>
+     {# Optional: Add pagination here if the filtered list could still be very long #}
+  {% else %}
+    <p>No attendance records found for the selected date range.</p>
+  {% endif %}
+  {# --- End Attendance Records Table --- #}
+
+   <div class="mt-3">
+       <a href="{% url 'teacher_dashboard' %}" class="btn btn-secondary btn-sm">Back to Dashboard</a>
+   </div>
+
+{% endblock %}

@@ -1,0 +1,118 @@
+{# templates/core/parent_dashboard.html #}
+
+{% extends 'base.html' %}
+{% load core_extras %} {# <--- ADDED: Load custom template tags #}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+  {# --- ANNOUNCEMENTS SECTION --- #}
+  {% if announcements %}
+  <div class="announcements mb-4">
+    <h3>Recent Announcements</h3>
+    {% for announcement in announcements %}
+      <div class="alert alert-info">
+        <h5>{{ announcement.title }} <small class="text-muted">({{ announcement.timestamp|date:"Y-m-d H:i" }})</small></h5>
+        <p>{{ announcement.content|linebreaksbr }}</p> {# Use linebreaksbr filter #}
+        {% if announcement.posted_by %}
+          <small>Posted by: {{ announcement.posted_by.get_full_name|default:announcement.posted_by.username }}</small>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+    {# --- ADD PAGINATION INCLUDE --- #}
+    {% include "partials/pagination.html" with page_obj=announcements %}
+    {# --- END INCLUDE --- #}
+  <hr> {# Separator #}
+  {% endif %}
+  {# --- END ANNOUNCEMENTS SECTION --- #}
+
+  <h2>{{ page_title }}</h2>
+  <p>Welcome, {{ parent.get_full_name|default:parent.username }}!</p>
+
+  {# --- ADD EXPORT BUTTON (if children exist) --- #}
+  {% if children_with_results %}
+    <div class="mb-3">
+        <a href="{% url 'export_parent_results' %}" class="btn btn-success btn-sm" title="Download results for all your children as CSV">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download me-1" viewBox="0 0 16 16">
+                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+            </svg> Export My Children's Results
+        </a>
+    </div>
+    <hr> {# Add a separator #}
+  {% endif %}
+  {# --- END EXPORT BUTTON --- #}
+
+  {% if children_with_results %}
+    <h3>Your Children:</h3> {# Changed heading slightly #}
+    {% for child in children_with_results %}
+      {# --- ADDED: Use 'with' tag to get summary for this child --- #}
+      {% with child_summary=attendance_summary|get_item:child.id %}
+      <div class="card mb-3">
+        <div class="card-header">
+          {# Child Name and Class #}
+          <h4>
+            <a href="{% url 'student_profile' student_id=child.id %}">
+              {{ child.full_name }}
+            </a>
+             ({{ child.current_class|default:"No Class Assigned" }})
+          </h4>
+          {# --- Attendance Summary Info in Header --- #}
+          {% if child_summary %} {# Check if summary exists for this child #}
+            <small class="text-muted">
+              Attendance (Last {{ attendance_period_days }} days):
+              Absences: <span class="{% if child_summary.absent_count > 0 %}text-danger fw-bold{% endif %}">{{ child_summary.absent_count }}</span> |
+              Lates: <span class="{% if child_summary.late_count > 0 %}text-warning fw-bold{% endif %}">{{ child_summary.late_count }}</span>
+            </small>
+          {% endif %}
+          {# --- End Attendance Summary --- #}
+        </div>
+        <div class="card-body">
+          {# --- Results Section --- #}
+          {% if child.results.all %}
+            <h5>Recent Results:</h5> {# Changed heading slightly #}
+            <table class="table table-striped table-sm">
+              <thead>
+                <tr>
+                  <th>Subject</th>
+                  <th>Term/Exam</th>
+                  <th>Score</th>
+                  <th>Grade</th>
+                  <th>Comments</th>
+                </tr>
+              </thead>
+              <tbody>
+                {# Show only most recent results (e.g., slice last 5) #}
+                {% for result in child.results.all|slice:":5" %}
+                  <tr>
+                    <td>{{ result.subject.name }}</td>
+                    <td>{{ result.term_exam_name }}</td>
+                    <td>{{ result.score|default:"N/A" }}</td>
+                    <td>{{ result.grade|default:"N/A" }}</td>
+                    <td>{{ result.comments|default:"" }}</td>
+                  </tr>
+                {% empty %}
+                   <tr>
+                      {# Changed colspan to 5 #}
+                      <td colspan="5">No recent results recorded for {{ child.first_name }}.</td>
+                   </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {# Optional link to view all results #}
+            {# <a href="#" class="btn btn-sm btn-outline-info">View All Results</a> #}
+          {% else %}
+            <p>No results have been recorded for {{ child.first_name }} yet.</p>
+          {% endif %}
+           {# --- End Results Section --- #}
+        </div>
+      </div>
+      {% endwith %} {# --- ADDED: End the 'with' block --- #}
+    {% endfor %}
+  {% else %}
+    <p>No children are currently associated with your account.</p>
+    <p>Please contact the school administration if this is incorrect.</p>
+  {% endif %}
+
+{% endblock %}
