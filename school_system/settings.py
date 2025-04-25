@@ -105,15 +105,54 @@ WSGI_APPLICATION = 'school_system.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': dj_database_url.config(
-        # Replace this value with your local fallback if DATABASE_URL isn't set
-        default=f'sqlite:///{os.path.join(BASE_DIR, "db.sqlite3")}',
-        conn_max_age=600, # Recommended for pooling connections
-        conn_health_checks=True, # Recommended
-        ssl_require=os.environ.get('DJANGO_DB_SSL_REQUIRE', 'False') == 'True' # Require SSL for production DB
+# --- UPDATED DATABASES SETTING ---
+DATABASES = {}
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if DATABASE_URL:
+    # Parse the database URL provided by Render (or environment)
+    db_config = dj_database_url.config(
+        default=DATABASE_URL, # Use the env var
+        conn_max_age=600,
+        conn_health_checks=True,
+        ssl_require=os.environ.get('DJANGO_DB_SSL_REQUIRE', 'False') == 'True'
     )
-}
+
+    # **Crucially:** Override the NAME extracted by dj-database-url
+    # The actual database name is usually the last part of the URL path
+    # Example URL: postgresql://user:pass@host:port/database_name
+    try:
+        # Get the path part (e.g., '/school_db_4cqb') and remove leading '/'
+        db_name = db_config.get('URL').path.lstrip('/')
+        if db_name and len(db_name) <= 63: # Check length just in case
+             db_config['NAME'] = db_name
+        else:
+             # Fallback or raise error if name extraction fails or is too long
+             # You might need to inspect the actual URL format Render gives you
+             # if this simple parsing fails. For now, let dj-database-url's default
+             # (potentially incorrect) name pass through if parsing fails,
+             # although this might lead back to the original error.
+             # A better approach might be to raise an ImproperlyConfigured error here.
+             print(f"WARNING: Could not reliably extract DB name from URL path: {db_config.get('URL').path}")
+             # Keep the potentially wrong name from dj-database-url if extraction fails
+             # db_config['NAME'] = db_config.get('NAME') # Already set by config()
+
+    except AttributeError:
+         print("WARNING: Could not parse database name from URL object.")
+         # Keep the potentially wrong name from dj-database-url if parsing fails
+         # db_config['NAME'] = db_config.get('NAME') # Already set by config()
+
+
+    DATABASES['default'] = db_config
+
+else:
+    # Fallback to SQLite if DATABASE_URL is not set (local development)
+    print("WARNING: DATABASE_URL environment variable not set. Falling back to SQLite.")
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'), # Or BASE_DIR / 'db.sqlite3'
+    }
+# --- END UPDATED DATABASES SETTING ---
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
