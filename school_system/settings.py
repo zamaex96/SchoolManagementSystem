@@ -110,18 +110,25 @@ WSGI_APPLICATION = 'school_system.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 # --- REVISED DATABASES SETTING ---
-DATABASES={}
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL:
-    parsed = urlparse(DATABASE_URL)
-    db_config = dj_database_url.config(
-        default=DATABASE_URL,
-        conn_max_age=600,
-        ssl_require=os.environ.get('DJANGO_DB_SSL_REQUIRE', 'False') == 'True'
-    )
-    # FORCE a short NAME
-    db_config['NAME'] = parsed.path.lstrip('/')  # now ≤63 chars
-    DATABASES = { 'default': db_config }
+    result = urlparse(DATABASE_URL)
+    DATABASES = {
+        'default': {
+            'ENGINE':   'django.db.backends.postgresql',
+            'NAME':     result.path.lstrip('/'),       # e.g. "school_db_4cqb"
+            'USER':     result.username,
+            'PASSWORD': result.password,
+            'HOST':     result.hostname,
+            'PORT':     result.port or '',
+            'CONN_MAX_AGE': 600,
+            **(
+                {'OPTIONS': {'sslmode': 'require'}}
+                if os.environ.get('DJANGO_DB_SSL_REQUIRE', 'False') == 'True'
+                else {}
+            )
+        }
+    }
 else:
     DATABASES = {
         'default': {
