@@ -9,66 +9,43 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
-import os # Make sure 'os' is imported at the top
+import os
 from pathlib import Path
 import dj_database_url
-from urllib.parse import urlparse # Import urlparse
-import logging
-from django.conf.global_settings import DATABASES
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Base directory for user-uploaded files
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media') # Or BASE_DIR / 'media'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-7#zm82-&1aus199$c=5q2i^@)b#*^@(*l=iyge&5^c+c4b#+r7'
 
-# SECURITY WARNING: don't run with debug turned on in production!
-#DEBUG = True
-#DEBUG = False #while Production
-# DEBUG will be 'False' in production on Render via environment variable
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
-#ALLOWED_HOSTS = []
 ALLOWED_HOSTS_STR = os.environ.get('DJANGO_ALLOWED_HOSTS')
 if ALLOWED_HOSTS_STR:
-     ALLOWED_HOSTS = ALLOWED_HOSTS_STR.split(',')
+    ALLOWED_HOSTS = ALLOWED_HOSTS_STR.split(',')
 else:
-     ALLOWED_HOSTS = []
+    ALLOWED_HOSTS = []
 
 if DEBUG:
     ALLOWED_HOSTS.extend(['localhost', '127.0.0.1'])
 
-# --- Consider these for HTTPS deployment ---
-# CSRF_COOKIE_SECURE = True # Set True if using HTTPS
-# SESSION_COOKIE_SECURE = True # Set True if using HTTPS
-# SECURE_SSL_REDIRECT = True # Set True to redirect HTTP to HTTPS (requires web server setup too)
-# SECURE_HSTS_SECONDS = 31536000 # Example: 1 year. Tells browsers to only use HTTPS.
-# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-# SECURE_HSTS_PRELOAD = True
-
-
 # Application definition
-
 INSTALLED_APPS = [
-    # Your custom app(s)
-    'core',  # <-- ADD THIS LINE (replace 'core' if you named your app differently)
-    # Import-Export MUST come BEFORE admin
+    'core',
     'import_export',
-
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
 ]
 
 MIDDLEWARE = [
@@ -87,8 +64,6 @@ ROOT_URLCONF = 'school_system.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        #'DIRS': [],
-         # Add the path to your project-level templates directory here:
         'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -105,37 +80,21 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'school_system.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
-# --- REVISED DATABASES SETTING ---
-logger = logging.getLogger(__name__)
+# Database Configuration
 DATABASE_URL = os.environ.get('DATABASE_URL')
+print(f"DATABASE_URL during deployment: {DATABASE_URL}")  # Debug output
+
 if DATABASE_URL:
-    logger.info(f"DATABASE_URL: {DATABASE_URL}")
-    result = urlparse(DATABASE_URL)
-    logger.info(f"Parsed DB NAME: {result.path.lstrip('/')}")
+    DATABASES = {'default': dj_database_url.config(conn_max_age=600)}
+else:
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': result.path.lstrip('/'),
-            'USER': result.username,
-            'PASSWORD': result.password,
-            'HOST': result.hostname,
-            'PORT': result.port or '',
-            'CONN_MAX_AGE': 600,
-            **(
-                {'OPTIONS': {'sslmode': 'require'}}
-                if os.environ.get('DJANGO_DB_SSL_REQUIRE', 'False') == 'True'
-                else {}
-            )
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 
 # Password validation
-# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -151,75 +110,37 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
-# https://docs.djangoproject.com/en/5.1/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.1/howto/static-files/
-
 STATIC_URL = 'static/'
-# Add this:
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
-]
-
-# Add this: Directory where collectstatic will gather files for deployment
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-# Enable Whitenoise storage with compression and caching support
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
-
-# ... other settings ...
-
-# Redirect here if user tries to access @login_required view without logging in
+# Authentication settings
 LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+LOGOUT_REDIRECT_URL = '/'
 
-# Redirect here after successful login
-LOGIN_REDIRECT_URL = '/dashboard/' # Changed to central dashboard redirect (see step 3)
-
-# Redirect here after successful logout
-LOGOUT_REDIRECT_URL = '/' # Redirect to homepage after logout
-
-# For development - print emails to console instead of sending
+# Email settings (development)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-# For production (Example using Gmail - requires less secure app access or app password):
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST = 'smtp.gmail.com'
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = 'your_email@gmail.com' # Your Gmail address
-# EMAIL_HOST_PASSWORD = 'your_gmail_app_password' # Your Gmail App Password
-# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+# CSRF trusted origins
 CSRF_TRUSTED_ORIGINS_STR = os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS')
 if CSRF_TRUSTED_ORIGINS_STR:
     CSRF_TRUSTED_ORIGINS = CSRF_TRUSTED_ORIGINS_STR.split(',')
 else:
     CSRF_TRUSTED_ORIGINS = []
-# Example for local dev if needed: CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8000']
 
-# Set these to 'True' in Render's environment if using HTTPS (which Render provides)
+# Security settings for HTTPS
 SECURE_SSL_REDIRECT = os.environ.get('DJANGO_SECURE_SSL_REDIRECT', 'False') == 'True'
 SESSION_COOKIE_SECURE = os.environ.get('DJANGO_SESSION_COOKIE_SECURE', 'False') == 'True'
 CSRF_COOKIE_SECURE = os.environ.get('DJANGO_CSRF_COOKIE_SECURE', 'False') == 'True'
-# Optional HSTS settings (read docs before enabling fully)
-# SECURE_HSTS_SECONDS = int(os.environ.get('DJANGO_SECURE_HSTS_SECONDS', 0)) # e.g., 31536000 for 1 year
-# SECURE_HSTS_INCLUDE_SUBDOMAINS = os.environ.get('DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS', 'False') == 'True'
-# SECURE_HSTS_PRELOAD = os.environ.get('DJANGO_SECURE_HSTS_PRELOAD', 'False') == 'True'
