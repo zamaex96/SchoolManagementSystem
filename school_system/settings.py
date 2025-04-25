@@ -13,6 +13,9 @@ import os # Make sure 'os' is imported at the top
 from pathlib import Path
 import dj_database_url
 from urllib.parse import urlparse # Import urlparse
+
+from django.conf.global_settings import DATABASES
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -107,54 +110,25 @@ WSGI_APPLICATION = 'school_system.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 # --- REVISED DATABASES SETTING ---
-DATABASES = {}
+DATABASES={}
 DATABASE_URL = os.environ.get('DATABASE_URL')
-
 if DATABASE_URL:
-    # Default config using dj-database-url
+    # parse once
+    parsed = urlparse(DATABASE_URL)
+    # let dj_database_url fill USER/PASSWORD/HOST/PORT etc.
     db_config = dj_database_url.config(
         default=DATABASE_URL,
         conn_max_age=600,
-        conn_health_checks=True,
         ssl_require=os.environ.get('DJANGO_DB_SSL_REQUIRE', 'False') == 'True'
     )
-
-    # --- Manually Extract and Set the NAME ---
-    try:
-        # Parse the original URL string
-        parsed_url = urlparse(DATABASE_URL)
-        # Get the path (e.g., '/school_db_4cqb') and remove leading '/'
-        db_name = parsed_url.path.lstrip('/')
-
-        if db_name and len(db_name) <= 63:
-            db_config['NAME'] = db_name # Override the NAME in the config dict
-            print(f"DEBUG: Successfully extracted DB NAME: {db_name}") # Add debug print
-        elif 'NAME' in db_config and len(db_config['NAME']) > 63:
-            # If dj-database-url already put a long name and we failed to extract
-            print(f"ERROR: Failed to parse DB name and dj-database-url default is too long: {db_config['NAME']}")
-            # Optionally raise ImproperlyConfigured here to halt the build clearly
-            # raise ImproperlyConfigured("Database name could not be parsed correctly and is too long.")
-        else:
-             # If extraction failed but dj-database-url name is okay or absent
-             print(f"WARNING: Could not extract DB name from path: {parsed_url.path}. Using dj-database-url default NAME.")
-
-
-    except Exception as e:
-         # Catch any parsing errors
-         print(f"ERROR: Exception while parsing DATABASE_URL for NAME: {e}")
-         # Optionally raise ImproperlyConfigured here too
-         # raise ImproperlyConfigured(f"Could not parse DATABASE_URL: {e}")
-
+    # **override** the NAME field so it can never exceed 63 chars
+    db_config['NAME'] = parsed.path.lstrip('/')
     DATABASES['default'] = db_config
-
 else:
-    # Fallback to SQLite if DATABASE_URL is not set (local development)
-    print("WARNING: DATABASE_URL environment variable not set. Falling back to SQLite.")
     DATABASES['default'] = {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'), # Or BASE_DIR / 'db.sqlite3'
+        'NAME':   os.path.join(BASE_DIR, 'db.sqlite3'),
     }
-# --- END REVISED DATABASES SETTING ---
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
