@@ -23,7 +23,9 @@ DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
 
 # --- ALLOWED_HOSTS ---
 # Start with an empty list
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
+
 
 # Get hosts from environment variable, split by comma
 ALLOWED_HOSTS_STR = os.environ.get('DJANGO_ALLOWED_HOSTS')
