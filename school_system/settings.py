@@ -17,22 +17,26 @@ SECRET_KEY = os.environ.get(
 )
 
 # Debug mode
-DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
+#DEBUG = os.environ.get('DJANGO_DEBUG', '').lower() in ['true', '1', 'yes']
+DEBUG=True
 
 # Allowed hosts
 ALLOWED_HOSTS = []
 raw_hosts = os.environ.get('DJANGO_ALLOWED_HOSTS', '')
-for entry in raw_hosts.split(','):
-    host = entry.strip()
-    if not host:
-        continue
-    # Strip protocol if provided
-    if host.startswith('http://') or host.startswith('https://'):
-        parsed = urlparse(host)
-        host = parsed.hostname or host
-    ALLOWED_HOSTS.append(host)
+
+if raw_hosts:
+    for entry in raw_hosts.split(','):
+        host = entry.strip()
+        if not host:
+            continue
+        # Strip protocol if provided
+        if host.startswith('http://') or host.startswith('https://'):
+            parsed = urlparse(host)
+            host = parsed.hostname or host
+        ALLOWED_HOSTS.append(host)
 
 if DEBUG:
+    # Always allow localhost in debug mode
     ALLOWED_HOSTS.extend(['localhost', '127.0.0.1'])
 
 if not ALLOWED_HOSTS and not DEBUG:
