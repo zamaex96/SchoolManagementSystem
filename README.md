@@ -20,6 +20,9 @@ A Django-based application for managing students, teachers, classes, attendance,
 9. [License](#license)  
 
 ---
+## Demo
+
+![Quick Demo](assets/demo.gif)
 
 ## Features
 
