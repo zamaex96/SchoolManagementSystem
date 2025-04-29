@@ -22,7 +22,7 @@ A Django-based application for managing students, teachers, classes, attendance,
 ---
 ## Demo
 
-![Quick Demo](assets/demo.gif)
+![Quick Demo](media/SMSclip.gif)
 
 ## Features
 
